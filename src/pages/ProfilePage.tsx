@@ -6,15 +6,6 @@ import { useAppContext } from '../context/AppContext';
 const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAppContext();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
-  const [businessDetails, setBusinessDetails] = useState({
-    name: '',
-    address: '',
-    city: '',
-    state: '',
-    country: 'India',
-    pincode: '',
-    gstin: ''
-  });
   
   const handleLanguageChange = (language: 'english' | 'hindi') => {
     updateUser({
@@ -34,14 +25,6 @@ const ProfilePage: React.FC = () => {
         notifications: !user.preferences.notifications,
       },
     });
-  };
-  
-  const handleBusinessDetailsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setBusinessDetails(prev => ({
-      ...prev,
-      [name]: value
-    }));
   };
   
   const subscriptionPlans = [
@@ -159,104 +142,6 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
             )}
-            
-            {/* Business Details Section */}
-            <div className="card mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Business Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Business Name
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    className="input"
-                    value={businessDetails.name}
-                    onChange={handleBusinessDetailsChange}
-                    placeholder="Your business name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    GSTIN
-                  </label>
-                  <input
-                    type="text"
-                    name="gstin"
-                    className="input"
-                    value={businessDetails.gstin}
-                    onChange={handleBusinessDetailsChange}
-                    placeholder="GST Identification Number"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address
-                  </label>
-                  <input
-                    type="text"
-                    name="address"
-                    className="input"
-                    value={businessDetails.address}
-                    onChange={handleBusinessDetailsChange}
-                    placeholder="Street address"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    className="input"
-                    value={businessDetails.city}
-                    onChange={handleBusinessDetailsChange}
-                    placeholder="City"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    State
-                  </label>
-                  <input
-                    type="text"
-                    name="state"
-                    className="input"
-                    value={businessDetails.state}
-                    onChange={handleBusinessDetailsChange}
-                    placeholder="State"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Country
-                  </label>
-                  <input
-                    type="text"
-                    name="country"
-                    className="input"
-                    value={businessDetails.country}
-                    onChange={handleBusinessDetailsChange}
-                    disabled
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    PIN Code
-                  </label>
-                  <input
-                    type="text"
-                    name="pincode"
-                    className="input"
-                    value={businessDetails.pincode}
-                    onChange={handleBusinessDetailsChange}
-                    placeholder="PIN code"
-                  />
-                </div>
-              </div>
-            </div>
             
             {user.isPremium && (
               <div className="card mb-6 bg-accent-50 border border-accent-100">
