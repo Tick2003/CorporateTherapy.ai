@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, LogOut, Bell, Languages as Language } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAppContext();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const handleLanguageChange = (language: 'english' | 'hindi') => {
     updateUser({
@@ -25,6 +29,44 @@ const ProfilePage: React.FC = () => {
         notifications: !user.preferences.notifications,
       },
     });
+  };
+
+  const handleSubscribe = async (planId: string) => {
+    try {
+      setIsProcessing(true);
+      const stripe = await stripePromise;
+      
+      if (!stripe) {
+        throw new Error('Stripe failed to load');
+      }
+
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          planId,
+          successUrl: `${window.location.origin}/profile?success=true`,
+          cancelUrl: `${window.location.origin}/profile?canceled=true`,
+        }),
+      });
+
+      const session = await response.json();
+
+      const result = await stripe.redirectToCheckout({
+        sessionId: session.id,
+      });
+
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to process subscription. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
   const subscriptionPlans = [
@@ -130,8 +172,12 @@ const ProfilePage: React.FC = () => {
                         ))}
                       </ul>
                       
-                      <button className="btn btn-primary w-full">
-                        Get {plan.name}
+                      <button 
+                        className="btn btn-primary w-full"
+                        onClick={() => handleSubscribe(plan.id)}
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? 'Processing...' : `Get ${plan.name}`}
                       </button>
                     </div>
                   ))}
