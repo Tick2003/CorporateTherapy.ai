@@ -4,7 +4,12 @@ import { Check, Sparkles, LogOut, Bell, Languages as Language } from 'lucide-rea
 import { useAppContext } from '../context/AppContext';
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+// Add null check for Stripe key
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+if (!stripeKey) {
+  throw new Error('Stripe publishable key is missing. Please check your .env file.');
+}
+const stripePromise = loadStripe(stripeKey);
 
 const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAppContext();
