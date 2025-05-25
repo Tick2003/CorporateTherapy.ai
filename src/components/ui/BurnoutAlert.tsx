@@ -37,25 +37,43 @@ const BurnoutAlert: React.FC = () => {
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className={`rounded-md border p-4 mb-6 ${getAlertColor()}`}
     >
-      <div className="flex">
-        <div className="flex-shrink-0">
+      <motion.div 
+        className="flex"
+        whileHover={{ scale: 1.01 }}
+        transition={{ type: "spring", stiffness: 400 }}
+      >
+        <motion.div 
+          className="flex-shrink-0"
+          animate={{ rotate: [0, -10, 10, -10, 0] }}
+          transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}
+        >
           {getIcon()}
-        </div>
+        </motion.div>
         <div className="ml-3">
-          <h3 className="text-sm font-medium">
+          <motion.h3 
+            className="text-sm font-medium"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
             {currentBurnoutRisk === 'High' 
               ? 'Burnout Warning' 
               : 'Burnout Risk Alert'}
-          </h3>
-          <div className="mt-2 text-sm">
-            <p>
-              {getBurnoutTip(currentBurnoutRisk)}
-            </p>
-          </div>
+          </motion.h3>
+          <motion.div 
+            className="mt-2 text-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <p>{getBurnoutTip(currentBurnoutRisk)}</p>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 };
