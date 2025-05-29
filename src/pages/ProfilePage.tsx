@@ -2,19 +2,10 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, LogOut, Bell, Languages as Language } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { loadStripe } from '@stripe/stripe-js';
-
-// Add null check for Stripe key
-const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-if (!stripeKey) {
-  throw new Error('Stripe publishable key is missing. Please check your .env file.');
-}
-const stripePromise = loadStripe(stripeKey);
 
 const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAppContext();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
-  const [isProcessing, setIsProcessing] = useState(false);
   
   const handleLanguageChange = (language: 'english' | 'hindi') => {
     updateUser({
@@ -36,44 +27,6 @@ const ProfilePage: React.FC = () => {
     });
   };
 
-  const handleSubscribe = async (planId: string) => {
-    try {
-      setIsProcessing(true);
-      const stripe = await stripePromise;
-      
-      if (!stripe) {
-        throw new Error('Stripe failed to load');
-      }
-
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          planId,
-          successUrl: `${window.location.origin}/profile?success=true`,
-          cancelUrl: `${window.location.origin}/profile?canceled=true`,
-        }),
-      });
-
-      const session = await response.json();
-
-      const result = await stripe.redirectToCheckout({
-        sessionId: session.id,
-      });
-
-      if (result.error) {
-        throw new Error(result.error.message);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to process subscription. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
   const subscriptionPlans = [
     {
       id: 'premium-monthly',
@@ -177,19 +130,16 @@ const ProfilePage: React.FC = () => {
                         ))}
                       </ul>
                       
-                      <button 
-                        className="btn btn-primary w-full"
-                        onClick={() => handleSubscribe(plan.id)}
-                        disabled={isProcessing}
-                      >
-                        {isProcessing ? 'Processing...' : `Get ${plan.name}`}
-                      </button>
+                      <div className="text-center p-3 bg-accent-50 rounded-lg border border-accent-100">
+                        <p className="text-accent-800 font-medium">Coming Soon!</p>
+                        <p className="text-sm text-accent-600 mt-1">Payments will be available shortly</p>
+                      </div>
                     </div>
                   ))}
                 </div>
                 
                 <div className="mt-4 text-sm text-gray-500 text-center">
-                  <p>Secure payment via Stripe. Cancel anytime.</p>
+                  <p>Secure payment system coming soon.</p>
                 </div>
               </div>
             )}
