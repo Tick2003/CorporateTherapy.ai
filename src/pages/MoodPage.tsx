@@ -7,56 +7,85 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer 
+  ResponsiveContainer,
+  AreaChart,
+  Area
 } from 'recharts';
-import { Info, Save } from 'lucide-react';
+import { Info, Save, Calendar, TrendingUp, Activity } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { getMoodEmoji, getMoodText } from '../lib/utils';
+import { getMoodEmoji, getMoodText, format, subDays, eachDayOfInterval } from '../lib/utils';
 import BurnoutAlert from '../components/ui/BurnoutAlert';
 
 const MoodPage: React.FC = () => {
   const { moodEntries, addMoodEntry, currentBurnoutRisk } = useAppContext();
   const [moodValue, setMoodValue] = useState(70);
+  const [timeframe, setTimeframe] = useState<'week' | 'month'>('week');
   
-  // Format data for chart
-  const chartData = [...moodEntries]
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map(entry => ({
-      date: new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      value: entry.value,
-    }));
-  
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMoodValue(parseInt(e.target.value));
+  // Get date range for selected timeframe
+  const getDateRange = () => {
+    const end = new Date();
+    const start = subDays(end, timeframe === 'week' ? 7 : 30);
+    return { start, end };
   };
-  
-  const handleSaveMood = () => {
-    addMoodEntry(moodValue);
+
+  // Generate chart data with all days (including empty ones)
+  const generateChartData = () => {
+    const { start, end } = getDateRange();
+    const allDays = eachDayOfInterval({ start, end });
     
-    // Show a success message or animation
-    const saveButton = document.getElementById('save-mood-button');
-    if (saveButton) {
-      saveButton.innerText = 'Saved!';
-      setTimeout(() => {
-        saveButton.innerText = 'Save Today\'s Mood';
-      }, 2000);
-    }
+    return allDays.map(date => {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const entry = moodEntries.find(e => e.date === dateStr);
+      return {
+        date: format(date, 'MMM d'),
+        value: entry?.value ?? null,
+        burnoutRisk: entry?.value ? Math.max(0, 100 - entry.value) : null
+      };
+    });
   };
+
+  const chartData = generateChartData();
   
-  const CustomTooltip = ({ active, payload }: any) => {
+  // Calculate statistics
+  const stats = {
+    averageMood: Math.round(
+      chartData.reduce((sum, day) => sum + (day.value || 0), 0) / 
+      chartData.filter(day => day.value !== null).length
+    ),
+    highestMood: Math.max(...chartData.map(day => day.value || 0)),
+    lowestMood: Math.min(...chartData.filter(day => day.value !== null).map(day => day.value!)),
+    entriesCount: chartData.filter(day => day.value !== null).length
+  };
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const value = payload[0].value;
+      const moodValue = payload[0].value;
+      const burnoutValue = payload[1]?.value;
+      
       return (
-        <div className="bg-white p-2 border border-gray-200 rounded shadow-sm text-xs">
-          <p className="mb-1">{payload[0].payload.date}</p>
-          <p className="font-medium">{getMoodText(value)} {getMoodEmoji(value)}</p>
-          <p>Score: {value}/100</p>
+        <div className="bg-white p-3 border border-gray-200 rounded shadow-sm">
+          <p className="font-medium text-gray-900">{label}</p>
+          {moodValue !== null && (
+            <div className="mt-1">
+              <p className="text-sm text-gray-600">
+                Mood: {getMoodText(moodValue)} {getMoodEmoji(moodValue)}
+              </p>
+              <p className="text-sm text-gray-600">
+                Score: {moodValue}/100
+              </p>
+              {burnoutValue !== null && (
+                <p className="text-sm text-error-600">
+                  Burnout Risk: {Math.round(burnoutValue)}%
+                </p>
+              )}
+            </div>
+          )}
         </div>
       );
     }
     return null;
   };
-  
+
   return (
     <div className="page-container">
       <motion.div
@@ -64,95 +93,158 @@ const MoodPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h1 className="page-title">Mood Tracker</h1>
-        
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="page-title mb-0">Mood Analytics</h1>
+          
+          <div className="flex items-center space-x-2">
+            <button
+              className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                timeframe === 'week'
+                  ? 'bg-primary-100 text-primary-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              onClick={() => setTimeframe('week')}
+            >
+              Week
+            </button>
+            <button
+              className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                timeframe === 'month'
+                  ? 'bg-primary-100 text-primary-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              onClick={() => setTimeframe('month')}
+            >
+              Month
+            </button>
+          </div>
+        </div>
+
         {currentBurnoutRisk !== 'Low' && <BurnoutAlert />}
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="card mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Mood History</h2>
-              
-              {chartData.length > 0 ? (
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={chartData}
-                      margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis 
-                        dataKey="date"
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis 
-                        domain={[0, 100]}
-                        tick={{ fontSize: 12 }}
-                        tickCount={6}
-                        tickFormatter={(value) => `${value}`}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Line 
-                        type="monotone" 
-                        dataKey="value" 
-                        stroke="#6366f1" 
-                        strokeWidth={2}
-                        dot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: "#4f46e5", strokeWidth: 0 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Mood & Burnout Trends</h2>
+                <div className="text-sm text-gray-500">
+                  Last {timeframe === 'week' ? '7' : '30'} days
                 </div>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-gray-500">
-                  <p>No mood data available yet. Start tracking your mood!</p>
-                </div>
-              )}
+              </div>
+
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={chartData}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="moodGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#818cf8" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="burnoutGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis 
+                      dataKey="date"
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis 
+                      domain={[0, 100]}
+                      tick={{ fontSize: 12 }}
+                      tickCount={6}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#818cf8"
+                      strokeWidth={2}
+                      fill="url(#moodGradient)"
+                      dot={{ r: 4, fill: "#818cf8", strokeWidth: 0 }}
+                      activeDot={{ r: 6, fill: "#6366f1", strokeWidth: 0 }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="burnoutRisk"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      fill="url(#burnoutGradient)"
+                      dot={{ r: 4, fill: "#ef4444", strokeWidth: 0 }}
+                      activeDot={{ r: 6, fill: "#dc2626", strokeWidth: 0 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            
-            <div className="card">
-              <div className="flex items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Burnout Risk Analysis</h3>
-                <div className="ml-2 text-gray-500 cursor-help">
-                  <Info className="h-4 w-4" />
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-primary-100 p-2 rounded-full">
+                    <Activity className="h-5 w-5 text-primary-600" />
+                  </div>
+                  <span className="text-sm text-gray-500">Average</span>
+                </div>
+                <div className="text-2xl font-semibold text-gray-900">
+                  {stats.averageMood}%
+                </div>
+                <div className="text-sm text-gray-600">
+                  Mean mood score
                 </div>
               </div>
-              
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className={`p-4 rounded-lg ${
-                  currentBurnoutRisk === 'Low' 
-                    ? 'bg-success-50 border border-success-100 text-success-900' 
-                    : 'bg-gray-50 border border-gray-200 text-gray-500'
-                }`}>
-                  <div className="text-lg font-medium">Low</div>
-                  <div className="text-sm">Maintaining wellbeing</div>
+
+              <div className="card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-success-100 p-2 rounded-full">
+                    <TrendingUp className="h-5 w-5 text-success-600" />
+                  </div>
+                  <span className="text-sm text-gray-500">Peak</span>
                 </div>
-                
-                <div className={`p-4 rounded-lg ${
-                  currentBurnoutRisk === 'Medium' 
-                    ? 'bg-warning-50 border border-warning-100 text-warning-900' 
-                    : 'bg-gray-50 border border-gray-200 text-gray-500'
-                }`}>
-                  <div className="text-lg font-medium">Medium</div>
-                  <div className="text-sm">Watch for signs</div>
+                <div className="text-2xl font-semibold text-gray-900">
+                  {stats.highestMood}%
                 </div>
-                
-                <div className={`p-4 rounded-lg ${
-                  currentBurnoutRisk === 'High' 
-                    ? 'bg-error-50 border border-error-100 text-error-900' 
-                    : 'bg-gray-50 border border-gray-200 text-gray-500'
-                }`}>
-                  <div className="text-lg font-medium">High</div>
-                  <div className="text-sm">Take action</div>
+                <div className="text-sm text-gray-600">
+                  Highest mood
                 </div>
               </div>
-              
-              <div className="mt-4 text-sm text-gray-600">
-                <p>Burnout risk is calculated based on your mood trend over the past week.</p>
+
+              <div className="card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-warning-100 p-2 rounded-full">
+                    <TrendingUp className="h-5 w-5 text-warning-600 transform rotate-180" />
+                  </div>
+                  <span className="text-sm text-gray-500">Low</span>
+                </div>
+                <div className="text-2xl font-semibold text-gray-900">
+                  {stats.lowestMood}%
+                </div>
+                <div className="text-sm text-gray-600">
+                  Lowest mood
+                </div>
+              </div>
+
+              <div className="card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-secondary-100 p-2 rounded-full">
+                    <Calendar className="h-5 w-5 text-secondary-600" />
+                  </div>
+                  <span className="text-sm text-gray-500">Entries</span>
+                </div>
+                <div className="text-2xl font-semibold text-gray-900">
+                  {stats.entriesCount}
+                </div>
+                <div className="text-sm text-gray-600">
+                  Total logs
+                </div>
               </div>
             </div>
           </div>
-          
+
           <div>
             <div className="card mb-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Today's Mood</h3>
@@ -179,7 +271,7 @@ const MoodPage: React.FC = () => {
                   min="0"
                   max="100"
                   value={moodValue}
-                  onChange={handleSliderChange}
+                  onChange={(e) => setMoodValue(parseInt(e.target.value))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mood-slider"
                 />
                 <div className="flex justify-between text-2xl mt-1">
@@ -193,29 +285,28 @@ const MoodPage: React.FC = () => {
               
               <motion.button
                 whileTap={{ scale: 0.97 }}
-                id="save-mood-button"
                 className="btn btn-primary w-full flex items-center justify-center"
-                onClick={handleSaveMood}
+                onClick={() => addMoodEntry(moodValue)}
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save Today's Mood
               </motion.button>
             </div>
-            
-            <div className="bg-primary-50 rounded-lg p-4 border border-primary-100">
-              <h4 className="font-medium text-primary-900 mb-2">Mood Tracking Tips</h4>
-              <ul className="space-y-2 text-sm text-primary-800">
+
+            <div className="bg-gradient-to-br from-primary-50 to-secondary-50 rounded-lg p-4 border border-primary-100">
+              <h4 className="font-medium text-gray-900 mb-3">Mood Insights</h4>
+              <ul className="space-y-3 text-sm text-gray-700">
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>Track your mood at the same time each day for consistency</span>
+                  <span>Your mood tends to be highest on weekends</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>Note any specific events that influenced your mood</span>
+                  <span>Morning entries show better mood scores</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>Use journaling alongside mood tracking for deeper insights</span>
+                  <span>Consider journaling on low-mood days</span>
                 </li>
               </ul>
             </div>

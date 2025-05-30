@@ -1,7 +1,9 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { MoodEntry } from '../types';
-import { format } from 'date-fns';
+import { format, subDays, eachDayOfInterval } from 'date-fns';
+
+export { format, subDays, eachDayOfInterval };
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -59,10 +61,6 @@ export function getGreeting(): string {
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
-}
-
-export function formatDate(date: Date): string {
-  return format(date, 'MMM d, yyyy h:mm a');
 }
 
 export function truncateText(text: string, maxLength: number): string {
