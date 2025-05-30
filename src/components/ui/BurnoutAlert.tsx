@@ -70,7 +70,7 @@ const BurnoutAlert: React.FC = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <p>{getBurnoutTip(currentBurnoutRisk)}</p>
+            <p>Your current burnout risk score is {currentBurnoutRisk}. {getBurnoutTip()}</p>
           </motion.div>
         </div>
       </motion.div>
