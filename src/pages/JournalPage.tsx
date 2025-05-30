@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, RefreshCw, Save, ChevronDown, ChevronUp } from 'lucide-react';
-import { formatDate, truncateText } from '../lib/utils';
+import { format, truncateText } from '../lib/utils';
 import { useAppContext } from '../context/AppContext';
 import BurnoutAlert from '../components/ui/BurnoutAlert';
 
@@ -142,7 +142,7 @@ const JournalPage: React.FC = () => {
                     >
                       <div className="flex justify-between items-center">
                         <div className="text-sm font-medium text-gray-900">
-                          {formatDate(entry.date)}
+                          {format(entry.date, 'PPP')}
                         </div>
                         
                         {entry.burnoutLevel && (
