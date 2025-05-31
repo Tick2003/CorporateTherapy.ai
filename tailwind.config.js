@@ -5,7 +5,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        dark: {
+        appDark: {
           50: '#18181B',
           100: '#27272A',
           200: '#3F3F46',
