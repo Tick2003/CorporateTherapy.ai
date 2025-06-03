@@ -2,12 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
+import { sendChatMessage } from '../lib/chat';
+import { canAccessChat } from '../lib/subscription';
 
 const VentPage: React.FC = () => {
-  const { chatHistory, addChatMessage } = useAppContext();
+  const { chatHistory, addChatMessage, user } = useAppContext();
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const canChat = canAccessChat(user);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -17,40 +20,49 @@ const VentPage: React.FC = () => {
     scrollToBottom();
   }, [chatHistory]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (!message.trim() || !canChat) return;
     
     // Add user message
     addChatMessage({ text: message, isUser: true });
     setMessage('');
-    
-    // Simulate AI response
     setIsLoading(true);
-    setTimeout(() => {
-      // In a real app, this would be an API call to ChatGPT
-      const responses = [
-        "That sounds challenging. How has this been affecting your work-life balance?",
-        "I understand how that could be frustrating. What specific aspect is bothering you the most?",
-        "Thank you for sharing that. It takes courage to acknowledge these feelings. Have you tried discussing this with anyone at work?",
-        "I'm hearing that you're feeling overwhelmed. Let's break this down into smaller parts we can address one by one.",
-        "That's a common challenge in corporate environments. Would it help to explore some boundary-setting techniques?",
-      ];
-      
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
+    
+    try {
+      const response = await sendChatMessage(chatHistory);
+      addChatMessage({ text: response, isUser: false });
+    } catch (error) {
+      console.error('Chat error:', error);
       addChatMessage({
-        text: randomResponse,
-        isUser: false,
+        text: "I apologize, but I'm having trouble responding right now. Please try again.",
+        isUser: false
       });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleAddToJournal = (text: string) => {
     // In a real app, this would navigate to journal and pre-fill
     console.log('Adding to journal:', text);
   };
+
+  if (!canChat) {
+    return (
+      <div className="page-container max-w-3xl">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Trial Period Ended</h2>
+          <p className="text-gray-600 mb-6">
+            Upgrade your plan to continue accessing AI chat support
+          </p>
+          <a href="/profile" className="btn btn-primary">
+            View Plans
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container max-w-3xl">
@@ -63,7 +75,7 @@ const VentPage: React.FC = () => {
         
         <div className="card mb-4 p-0 flex flex-col h-[60vh]">
           <div className="bg-gradient-to-r from-primary-50 to-primary-100 rounded-t-lg p-4 border-b border-primary-200">
-            <h2 className="text-primary-800 font-medium">AI Therapist Chat</h2>
+            <h2 className="text-primary-800 font-semibold">AI Therapist Chat</h2>
             <p className="text-sm text-primary-700">
               Share what's on your mind. I'm here to listen and support you.
             </p>
