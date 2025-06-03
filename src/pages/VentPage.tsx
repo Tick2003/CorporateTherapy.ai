@@ -22,7 +22,7 @@ const VentPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !canChat) return;
+    if (!message.trim() || !canChat || isLoading) return;
     
     // Add user message
     addChatMessage({ text: message, isUser: true });
