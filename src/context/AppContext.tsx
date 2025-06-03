@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { addDays } from 'date-fns';
 import { 
   User, 
   ChatMessage, 
@@ -8,12 +9,15 @@ import {
   AudioBoost
 } from '../types';
 import { checkBurnoutRisk } from '../lib/utils';
+import { generateReferralCode } from '../lib/subscription';
 
 // Sample data
 const sampleUser: User = {
   id: '1',
   name: 'Rahul',
-  isPremium: false,
+  tier: 'explore',
+  trialEndsAt: addDays(new Date(), 7),
+  referralCode: generateReferralCode(),
   audioPlaysToday: 0,
   preferences: {
     language: 'english',
@@ -252,12 +256,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!boost) return false;
     
     // Check if premium content
-    if (boost.isPremium && !user.isPremium) {
+    if (boost.isPremium && user.tier === 'explore') {
       return false;
     }
     
     // Check free user limits
-    if (!user.isPremium && user.audioPlaysToday >= 2) {
+    if (user.tier === 'explore' && user.audioPlaysToday >= 2) {
       return false;
     }
     
