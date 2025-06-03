@@ -22,6 +22,7 @@ const VentPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent form submission from scrolling
     if (!message.trim() || !canChat || isLoading) return;
     
     // Add user message
