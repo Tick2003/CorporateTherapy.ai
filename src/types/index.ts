@@ -1,7 +1,10 @@
 export interface User {
   id: string;
   name: string;
-  isPremium: boolean;
+  tier: 'explore' | 'reflect' | 'heal' | 'thrive';
+  trialEndsAt?: Date;
+  referralCode: string;
+  referredBy?: string;
   audioPlaysToday: number;
   preferences: {
     language: 'english' | 'hindi';
@@ -40,7 +43,7 @@ export interface SkillLesson {
 export interface MoodEntry {
   id: string;
   date: string;
-  value: number; // 0-100
+  value: number;
 }
 
 export interface AudioBoost {
@@ -52,11 +55,21 @@ export interface AudioBoost {
   audioUrl: string;
 }
 
+export interface SubscriptionTier {
+  id: 'explore' | 'reflect' | 'heal' | 'thrive';
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  referralBenefit?: string;
+}
+
 export interface Subscription {
   id: string;
-  name: string;
-  price: string;
-  currency: string;
-  interval: 'month' | 'year';
-  features: string[];
+  userId: string;
+  tierId: SubscriptionTier['id'];
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  referralCode: string;
 }
