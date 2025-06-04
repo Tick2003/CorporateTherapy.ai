@@ -3,12 +3,10 @@ import {
   getAuth, 
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
+  sendEmailVerification,
   signInWithEmailLink,
+  isSignInWithEmailLink,
   signOut,
-  sendEmailVerificationCode,
-  verifyEmailWithCode
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -23,28 +21,27 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-export async function signUp(email: string) {
+export async function signUp(email: string, password: string) {
   try {
-    await sendEmailVerificationCode(auth, email);
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await sendEmailVerification(userCredential.user);
     return { success: true };
   } catch (error) {
-    console.error('Error sending OTP:', error);
+    console.error('Error during sign up:', error);
     throw error;
   }
 }
 
+// Note: This function needs to be implemented based on the desired authentication flow
+// For now, it's a placeholder that will need to be updated according to requirements
 export async function verifyOTP(email: string, code: string) {
-  try {
-    await verifyEmailWithCode(auth, email, code);
-    return { success: true };
-  } catch (error) {
-    console.error('Error verifying OTP:', error);
-    throw error;
-  }
+  throw new Error('verifyOTP function needs to be implemented based on authentication requirements');
 }
 
 export async function logOut() {
   return signOut(auth);
 }
 
+export const signIn = signInWithEmailAndPassword;
+export const sendMagicLink = signInWithEmailLink;
 export { auth };
