@@ -1,10 +1,15 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 import { Configuration, OpenAIApi } from 'npm:openai@4.28.0';
+import { getAuth } from 'npm:firebase-admin/auth';
+import { initializeApp } from 'npm:firebase-admin/app';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Initialize Firebase Admin
+initializeApp();
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -31,17 +36,34 @@ Deno.serve(async (req) => {
       return new Response('ok', { headers: corsHeaders });
     }
 
-    // Verify auth
+    // Verify Firebase token
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response('Unauthorized', { status: 401 });
     }
 
+    try {
+      const token = authHeader.split('Bearer ')[1];
+      await getAuth().verifyIdToken(token);
+    } catch (error) {
+      return new Response('Invalid token', { status: 401 });
+    }
+
     const { messages } = await req.json();
+
+    // Store chat in Supabase
+    const { data: chatData, error: chatError } = await supabase
+      .from('chats')
+      .insert([{ messages }])
+      .select();
+
+    if (chatError) {
+      console.error('Error storing chat:', chatError);
+    }
 
     // Call OpenAI
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: 'gpt-3.5-turbo',
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages.map((msg: any) => ({
@@ -54,6 +76,12 @@ Deno.serve(async (req) => {
     });
 
     const response = completion.choices[0].message?.content || 'I apologize, but I am unable to respond at the moment.';
+
+    // Store response in Supabase
+    await supabase
+      .from('chats')
+      .update({ response })
+      .eq('id', chatData?.[0]?.id);
 
     return new Response(
       JSON.stringify({ response }),

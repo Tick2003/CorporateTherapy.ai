@@ -6,7 +6,9 @@ import {
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
-  signOut
+  signOut,
+  sendEmailVerificationCode,
+  verifyEmailWithCode
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -21,27 +23,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-export async function signUp(email: string, password: string) {
-  return createUserWithEmailAndPassword(auth, email, password);
-}
-
-export async function signIn(email: string, password: string) {
-  return signInWithEmailAndPassword(auth, email, password);
-}
-
-export async function sendMagicLink(email: string) {
-  const actionCodeSettings = {
-    url: `${window.location.origin}/auth/verify`,
-    handleCodeInApp: true
-  };
-  return sendSignInLinkToEmail(auth, email, actionCodeSettings);
-}
-
-export async function verifyMagicLink(email: string) {
-  if (isSignInWithEmailLink(auth, window.location.href)) {
-    return signInWithEmailLink(auth, email, window.location.href);
+export async function signUp(email: string) {
+  try {
+    await sendEmailVerificationCode(auth, email);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    throw error;
   }
-  throw new Error('Invalid magic link');
+}
+
+export async function verifyOTP(email: string, code: string) {
+  try {
+    await verifyEmailWithCode(auth, email, code);
+    return { success: true };
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    throw error;
+  }
 }
 
 export async function logOut() {
